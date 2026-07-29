@@ -1,0 +1,132 @@
+name: Build PicoClaw Windows payload
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PICOCLAW_SOURCE_COMMIT: bc2d8ac960148146c9c289f84651ee22f6392537
+  PICOCLAW_TEMPLATE_COMMIT: 52320f48755852e53b8b6b10b1414a32c3f0a8a8
+
+jobs:
+  build-payload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Sandboxie integration
+        uses: actions/checkout@v7
+        with:
+          path: sandboxie
+
+      - name: Check out PicoClaw application source
+        uses: actions/checkout@v7
+        with:
+          repository: Anywayany/picoclaw
+          ref: ${{ env.PICOCLAW_SOURCE_COMMIT }}
+          path: picoclaw
+
+      - name: Check out PicoClaw workspace templates
+        uses: actions/checkout@v7
+        with:
+          repository: Anywayany/picoclaw
+          ref: ${{ env.PICOCLAW_TEMPLATE_COMMIT }}
+          path: picoclaw-main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.1"
+          cache-dependency-path: picoclaw/go.sum
+
+      - name: Enable the locked pnpm version
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.0 --activate
+
+      - name: Restore missing onboarding templates
+        run: cp -a picoclaw-main/workspace picoclaw/workspace
+
+      - name: Build Windows x64 launcher and core
+        working-directory: picoclaw
+        run: |
+          GOOS=windows GOARCH=amd64 make build-launcher
+          GOOS=windows GOARCH=amd64 make build
+
+      - name: Assemble and verify payload
+        env:
+          PICOCLAW_GO_VERSION: go1.26.1
+        run: |
+          cp picoclaw/build/picoclaw-launcher-windows-amd64.exe \
+            sandboxie/WendiChat/resources/picoclaw/picoclaw-launcher.exe
+          cp picoclaw/build/picoclaw-windows-amd64.exe \
+            sandboxie/WendiChat/resources/picoclaw/picoclaw.exe
+          source_commit="$(git -C picoclaw rev-parse HEAD)"
+          template_commit="$(git -C picoclaw-main rev-parse HEAD)"
+          node sandboxie/WendiChat/scripts/write-picoclaw-manifest.js \
+            "$source_commit" "$template_commit"
+          node sandboxie/WendiChat/scripts/verify-picoclaw-payload.js
+
+      - name: Upload verified payload
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: picoclaw-windows-x64
+          if-no-files-found: error
+          path: |
+            sandboxie/WendiChat/resources/picoclaw/picoclaw-launcher.exe
+            sandboxie/WendiChat/resources/picoclaw/picoclaw.exe
+            sandboxie/WendiChat/resources/picoclaw/payload-manifest.json
+            sandboxie/WendiChat/resources/picoclaw/LICENSE.picoclaw.txt
+
+  build-installer:
+    needs: build-payload
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: WendiChat
+    steps:
+      - name: Check out Sandboxie integration
+        uses: actions/checkout@v7
+
+      - name: Download verified PicoClaw payload
+        uses: actions/download-artifact@v8
+        with:
+          name: picoclaw-windows-x64
+          path: WendiChat/resources/picoclaw
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: WendiChat/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build non-elevating Windows x64 installer
+        run: npm run dist:win
+
+      - name: Write installer checksums
+        shell: powershell
+        run: |
+          Get-ChildItem -LiteralPath ".\dist" -Filter "*.exe" -File |
+            ForEach-Object {
+              $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              "$hash  $($_.Name)"
+            } |
+            Set-Content -LiteralPath ".\dist\SHA256SUMS.txt" -Encoding ascii
+
+      - name: Upload unsigned Wendi Chat installer
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: wendi-chat-windows-x64-unsigned
+          if-no-files-found: error
+          path: |
+            WendiChat/dist/*.exe
+            WendiChat/dist/SHA256SUMS.txt

@@ -1,0 +1,72 @@
+name: Wendi Chat validation
+
+on:
+  push:
+    paths:
+      - "WendiChat/**"
+      - ".github/workflows/wendi-chat.yml"
+  pull_request:
+    paths:
+      - "WendiChat/**"
+      - ".github/workflows/wendi-chat.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: WendiChat
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: WendiChat/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/main.js
+          node --check src/preload.js
+          node --check src/main/picoclaw-runtime.js
+          node --check src/main/runtime-config.js
+          node --check src/main/url-policy.js
+          node --check src/renderer/app.js
+          node --check scripts/verify-picoclaw-payload.js
+          node --check scripts/write-picoclaw-manifest.js
+
+      - name: Run unit tests
+        run: npm test
+
+  validate-windows-script:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Parse the Windows smoke test
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path ".\WendiChat\scripts\Test-WendiChatSandbox.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }

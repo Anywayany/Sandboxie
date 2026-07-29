@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-src http://127.0.0.1:*; form-action 'none'"
+    >
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wendi Chat</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="应用导航">
+        <div class="brand" aria-label="Wendi">W</div>
+        <nav>
+          <button class="nav-item active" data-section="messages" title="消息" aria-label="消息">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5.5h14v10H9l-4 3v-13Z"/>
+              <path d="M8 9h8M8 12h5"/>
+            </svg>
+            <span class="unread-dot"></span>
+          </button>
+          <button class="nav-item" data-section="contacts" title="通讯录" aria-label="通讯录">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="8" r="3"/>
+              <path d="M6.5 18c.5-3.1 2.3-4.7 5.5-4.7s5 1.6 5.5 4.7"/>
+            </svg>
+          </button>
+          <button class="nav-item agent-button" data-section="agent" title="PicoClaw 智能体" aria-label="PicoClaw 智能体">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="7" width="14" height="11" rx="3"/>
+              <path d="M12 4v3M9 12h.01M15 12h.01M9 15h6"/>
+            </svg>
+            <span class="agent-indicator" id="agent-indicator"></span>
+          </button>
+        </nav>
+        <button class="avatar-button" aria-label="个人信息">安</button>
+      </aside>
+
+      <main class="workspace">
+        <section class="section active" id="messages">
+          <div class="conversation-list">
+            <header class="list-header">
+              <label class="search">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="10.5" cy="10.5" r="5.5"/>
+                  <path d="m15 15 4 4"/>
+                </svg>
+                <input type="search" placeholder="搜索" aria-label="搜索消息">
+              </label>
+              <button class="add-button" aria-label="新建会话">+</button>
+            </header>
+            <div class="conversation selected">
+              <div class="conversation-avatar blue">产</div>
+              <div class="conversation-copy">
+                <div class="conversation-title"><strong>产品研发群</strong><time>10:42</time></div>
+                <p>林涛：今天的评审材料已经更新</p>
+              </div>
+            </div>
+            <div class="conversation">
+              <div class="conversation-avatar green">客</div>
+              <div class="conversation-copy">
+                <div class="conversation-title"><strong>客户交付项目</strong><time>09:18</time></div>
+                <p>你：部署计划已同步给大家</p>
+              </div>
+            </div>
+            <div class="conversation">
+              <div class="conversation-avatar violet">周</div>
+              <div class="conversation-copy">
+                <div class="conversation-title"><strong>周宁</strong><time>昨天</time></div>
+                <p>好的，明天上午一起确认</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-panel">
+            <header class="chat-header">
+              <div>
+                <h1>产品研发群 <span>(12)</span></h1>
+                <p>内部产品与研发协作</p>
+              </div>
+              <button class="more-button" aria-label="更多">•••</button>
+            </header>
+            <div class="message-area">
+              <div class="time-label">今天 10:36</div>
+              <div class="message-row">
+                <div class="mini-avatar blue">林</div>
+                <div>
+                  <span class="sender">林涛</span>
+                  <div class="bubble">今天的评审材料已经更新，大家可以看一下。</div>
+                </div>
+              </div>
+              <div class="message-row own">
+                <div>
+                  <div class="bubble">收到，我会在下午评审前补充沙箱部署说明。</div>
+                </div>
+                <div class="mini-avatar dark">安</div>
+              </div>
+            </div>
+            <div class="composer">
+              <div class="composer-tools">☺　📎　▣</div>
+              <textarea aria-label="输入消息" placeholder="输入消息"></textarea>
+              <button>发送</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="section simple-section" id="contacts">
+          <div class="simple-card">
+            <span class="eyebrow">通讯录</span>
+            <h1>企业联系人</h1>
+            <p>这里预留与企业组织架构、群组和外部联系人的集成接口。</p>
+          </div>
+        </section>
+
+        <section class="section agent-section" id="agent">
+          <iframe
+            id="agent-frame"
+            class="agent-frame"
+            title="PicoClaw 桌面对话"
+            sandbox="allow-forms allow-same-origin allow-scripts"
+            hidden
+          ></iframe>
+          <div class="agent-state-card" id="agent-state-card">
+            <div class="agent-mark">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="4" y="7" width="16" height="12" rx="4"/>
+                <path d="M12 3v4M8 12h.01M16 12h.01M8 16h8"/>
+              </svg>
+            </div>
+            <span class="eyebrow">PicoClaw 智能体</span>
+            <h1 id="agent-title">正在准备安全环境</h1>
+            <p id="agent-detail">首次进入时将通过企业安装的 Light Sandboxie Core 启动服务。</p>
+            <div class="loading-bar" id="loading-bar"><span></span></div>
+            <button class="retry-button" id="retry-button" hidden>重新启动</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

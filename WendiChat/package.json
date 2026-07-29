@@ -1,0 +1,74 @@
+{
+  "name": "wendi-chat-desktop",
+  "version": "0.1.0",
+  "description": "Windows enterprise chat shell with a Sandboxie-isolated PicoClaw agent.",
+  "author": "Anywayany",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Anywayany/Sandboxie.git"
+  },
+  "main": "src/main.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "verify:payload": "node scripts/verify-picoclaw-payload.js",
+    "smoke:sandbox": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-WendiChatSandbox.ps1",
+    "dist:win": "npm run verify:payload && electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "43.0.0",
+    "electron-builder": "26.15.3"
+  },
+  "overrides": {
+    "brace-expansion": "5.0.8"
+  },
+  "build": {
+    "appId": "com.wendi.chat.desktop",
+    "productName": "Wendi Chat",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/picoclaw",
+        "to": "picoclaw",
+        "filter": [
+          "picoclaw-launcher.exe",
+          "picoclaw.exe",
+          "payload-manifest.json",
+          "LICENSE.picoclaw.txt"
+        ]
+      }
+    ],
+    "win": {
+      "requestedExecutionLevel": "asInvoker",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "packElevateHelper": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

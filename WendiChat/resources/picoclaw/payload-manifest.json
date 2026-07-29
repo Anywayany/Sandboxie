@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "source_repository": "https://github.com/Anywayany/picoclaw",
+  "source_branch": "wendi-mobile-h5",
+  "source_commit": "bc2d8ac960148146c9c289f84651ee22f6392537",
+  "workspace_template_branch": "main",
+  "workspace_template_commit": "52320f48755852e53b8b6b10b1414a32c3f0a8a8",
+  "target": "windows/amd64",
+  "go_version": "go1.26.1",
+  "created_utc": "2026-07-29T15:19:03.134Z",
+  "files": [
+    {
+      "name": "picoclaw-launcher.exe",
+      "size": 24794112,
+      "sha256": "b460c04e163b7e23eb5fd03cdc463fe7d6ff85e72dcf6a7adf59cbcac8f05ac7"
+    },
+    {
+      "name": "picoclaw.exe",
+      "size": 38466048,
+      "sha256": "256a53a5d06f72540e29793a5a675abc1886fb3c390e5d14e67a6eff33c28c19"
+    }
+  ]
+}
