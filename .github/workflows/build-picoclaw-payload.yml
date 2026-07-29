@@ -2,6 +2,11 @@ name: Build PicoClaw Windows payload
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - light-sandboxie
+    paths:
+      - ".github/workflows/build-picoclaw-payload.yml"
 
 permissions:
   contents: read
