@@ -13,10 +13,13 @@ const {
 const { PicoClawRuntime } = require("./main/picoclaw-runtime");
 const { createRuntimeConfig } = require("./main/runtime-config");
 const {
-  isAllowedAgentFrameUrl,
   isAllowedAgentRequestUrl,
   isTrustedShellUrl
 } = require("./main/url-policy");
+const {
+  enforceFrameNavigation,
+  enforceMainNavigation
+} = require("./main/navigation-policy");
 
 const SHELL_ORIGIN = "wendi-app://shell";
 const WINDOW_PARTITION = "persist:wendi-chat";
@@ -158,21 +161,11 @@ function createWindow() {
 
   configureWindowSession(mainWindow);
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  mainWindow.webContents.on("will-navigate", (event, destination) => {
-    if (!destination.startsWith(SHELL_ORIGIN)) {
-      event.preventDefault();
-    }
+  mainWindow.webContents.on("will-navigate", (details) => {
+    enforceMainNavigation(details);
   });
-  mainWindow.webContents.on("will-frame-navigate", (event, details) => {
-    if (details.isMainFrame) {
-      if (!details.url.startsWith(SHELL_ORIGIN)) {
-        event.preventDefault();
-      }
-      return;
-    }
-    if (!isAllowedAgentFrameUrl(details.url, allowedAgentOrigin)) {
-      event.preventDefault();
-    }
+  mainWindow.webContents.on("will-frame-navigate", (details) => {
+    enforceFrameNavigation(details, allowedAgentOrigin);
   });
   mainWindow.on("closed", () => {
     mainWindow = undefined;
