@@ -5,15 +5,19 @@ const {
   isTrustedShellUrl
 } = require("./url-policy");
 
-function enforceMainNavigation(details) {
-  if (!isTrustedShellUrl(details.url)) {
+function enforceMainNavigation(details, expectedShellOrigin) {
+  if (!isTrustedShellUrl(details.url, expectedShellOrigin)) {
     details.preventDefault();
   }
 }
 
-function enforceFrameNavigation(details, expectedAgentOrigin) {
+function enforceFrameNavigation(
+  details,
+  expectedAgentOrigin,
+  expectedShellOrigin
+) {
   const allowed = details.isMainFrame
-    ? isTrustedShellUrl(details.url)
+    ? isTrustedShellUrl(details.url, expectedShellOrigin)
     : isAllowedAgentFrameUrl(details.url, expectedAgentOrigin);
   if (!allowed) {
     details.preventDefault();

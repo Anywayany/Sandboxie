@@ -8,13 +8,29 @@ function parseUrl(rawUrl) {
   }
 }
 
-function isTrustedShellUrl(rawUrl) {
+function isTrustedShellUrl(rawUrl, expectedOrigin) {
   const url = parseUrl(rawUrl);
-  return Boolean(url) &&
-    url.protocol === "wendi-app:" &&
-    url.hostname === "shell" &&
-    url.port === "" &&
+  const expected = parseUrl(expectedOrigin);
+  return Boolean(url) && Boolean(expected) &&
+    expected.protocol === "http:" &&
+    expected.hostname === "127.0.0.1" &&
+    url.origin === expected.origin &&
+    url.username === "" &&
+    url.password === "" &&
+    url.search === "" &&
+    url.hash === "" &&
     (url.pathname === "/" || url.pathname === "/index.html");
+}
+
+function isAllowedShellRequestUrl(rawUrl, expectedOrigin) {
+  const url = parseUrl(rawUrl);
+  const expected = parseUrl(expectedOrigin);
+  return Boolean(url) && Boolean(expected) &&
+    expected.protocol === "http:" &&
+    expected.hostname === "127.0.0.1" &&
+    url.origin === expected.origin &&
+    url.username === "" &&
+    url.password === "";
 }
 
 function isAllowedAgentRequestUrl(rawUrl, expectedOrigin) {
@@ -56,5 +72,6 @@ function isAllowedAgentFrameUrl(rawUrl, expectedOrigin) {
 module.exports = {
   isAllowedAgentFrameUrl,
   isAllowedAgentRequestUrl,
+  isAllowedShellRequestUrl,
   isTrustedShellUrl
 };

@@ -5,10 +5,12 @@ const test = require("node:test");
 const {
   isAllowedAgentFrameUrl,
   isAllowedAgentRequestUrl,
+  isAllowedShellRequestUrl,
   isTrustedShellUrl
 } = require("../src/main/url-policy");
 
 const expectedOrigin = "http://127.0.0.1:28431";
+const shellOrigin = "http://127.0.0.1:31500";
 
 test("agent requests stay on the selected loopback origin", () => {
   assert.equal(
@@ -40,10 +42,28 @@ test("agent requests permit local browser resources but frames do not", () => {
   );
 });
 
-test("trusted shell URLs are validated without relying on custom-scheme origin", () => {
-  assert.equal(isTrustedShellUrl("wendi-app://shell/index.html"), true);
-  assert.equal(isTrustedShellUrl("wendi-app://shell/"), true);
-  assert.equal(isTrustedShellUrl("wendi-app://shell/app.js"), false);
-  assert.equal(isTrustedShellUrl("wendi-app://attacker/index.html"), false);
-  assert.equal(isTrustedShellUrl("https://shell/index.html"), false);
+test("trusted shell URLs stay on the selected loopback origin", () => {
+  assert.equal(isTrustedShellUrl(`${shellOrigin}/index.html`, shellOrigin), true);
+  assert.equal(isTrustedShellUrl(`${shellOrigin}/`, shellOrigin), true);
+  assert.equal(isTrustedShellUrl(`${shellOrigin}/app.js`, shellOrigin), false);
+  assert.equal(isTrustedShellUrl(`${shellOrigin}/?debug=1`, shellOrigin), false);
+  assert.equal(
+    isTrustedShellUrl("http://127.0.0.1:31501/index.html", shellOrigin),
+    false
+  );
+  assert.equal(isTrustedShellUrl("https://127.0.0.1:31500/", shellOrigin), false);
+  assert.equal(isTrustedShellUrl(`${shellOrigin}/`, "https://example.com"), false);
+});
+
+test("shell resource requests stay on their random loopback origin", () => {
+  assert.equal(isAllowedShellRequestUrl(`${shellOrigin}/app.js`, shellOrigin), true);
+  assert.equal(
+    isAllowedShellRequestUrl("http://127.0.0.1:31501/app.js", shellOrigin),
+    false
+  );
+  assert.equal(isAllowedShellRequestUrl("https://example.com/app.js", shellOrigin), false);
+  assert.equal(
+    isAllowedShellRequestUrl(`${shellOrigin}/app.js`, "https://127.0.0.1:31500"),
+    false
+  );
 });

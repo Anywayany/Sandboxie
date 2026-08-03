@@ -1,74 +1,42 @@
 "use strict";
 
 const path = require("node:path");
-const { pathToFileURL } = require("node:url");
 const {
   app,
   BrowserWindow,
-  ipcMain,
-  net,
-  protocol,
-  session
+  ipcMain
 } = require("electron");
 const { PicoClawRuntime } = require("./main/picoclaw-runtime");
 const { createRuntimeConfig } = require("./main/runtime-config");
 const {
   isAllowedAgentRequestUrl,
+  isAllowedShellRequestUrl,
   isTrustedShellUrl
 } = require("./main/url-policy");
 const {
   enforceFrameNavigation,
   enforceMainNavigation
 } = require("./main/navigation-policy");
+const { startShellServer } = require("./main/shell-server");
 
-const SHELL_ORIGIN = "wendi-app://shell";
 const WINDOW_PARTITION = "persist:wendi-chat";
 const ALLOWED_SECTIONS = new Set(["messages", "contacts", "agent"]);
 
 let mainWindow;
 let runtime;
+let shellService;
+let shellOrigin;
 let quitAfterCleanup = false;
 let allowedAgentOrigin;
-
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: "wendi-app",
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      corsEnabled: false
-    }
-  }
-]);
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) {
   app.quit();
 }
 
-function registerShellProtocol(sessionProtocol) {
-  const rendererRoot = path.join(__dirname, "renderer");
-  const files = new Map([
-    ["/", "index.html"],
-    ["/index.html", "index.html"],
-    ["/app.js", "app.js"],
-    ["/styles.css", "styles.css"]
-  ]);
-
-  sessionProtocol.handle("wendi-app", (request) => {
-    const url = new URL(request.url);
-    const relative = url.host === "shell" ? files.get(url.pathname) : undefined;
-    if (!relative) {
-      return new Response("Not found", { status: 404 });
-    }
-    return net.fetch(pathToFileURL(path.join(rendererRoot, relative)).toString());
-  });
-}
-
 function isTrustedShellSender(event) {
   try {
-    return isTrustedShellUrl(event.senderFrame.url) &&
+    return isTrustedShellUrl(event.senderFrame.url, shellOrigin) &&
       event.sender === mainWindow.webContents;
   } catch {
     return false;
@@ -95,7 +63,7 @@ function configureWindowSession(window) {
   windowSession.setPermissionCheckHandler(() => false);
   windowSession.on("will-download", (event) => event.preventDefault());
   windowSession.webRequest.onBeforeRequest((details, callback) => {
-    let allowed = details.url.startsWith(`${SHELL_ORIGIN}/`);
+    let allowed = isAllowedShellRequestUrl(details.url, shellOrigin);
     if (!allowed) {
       allowed = isAllowedAgentRequestUrl(details.url, allowedAgentOrigin);
     }
@@ -162,25 +130,27 @@ function createWindow() {
   configureWindowSession(mainWindow);
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   mainWindow.webContents.on("will-navigate", (details) => {
-    enforceMainNavigation(details);
+    enforceMainNavigation(details, shellOrigin);
   });
   mainWindow.webContents.on("will-frame-navigate", (details) => {
-    enforceFrameNavigation(details, allowedAgentOrigin);
+    enforceFrameNavigation(details, allowedAgentOrigin, shellOrigin);
   });
   mainWindow.on("closed", () => {
     mainWindow = undefined;
   });
   mainWindow.once("ready-to-show", () => mainWindow.show());
-  void mainWindow.loadURL(`${SHELL_ORIGIN}/index.html`);
+  void mainWindow.loadURL(`${shellOrigin}/index.html`);
 }
 
-app.whenReady().then(() => {
+async function initializeApplication() {
   if (!hasSingleInstanceLock) {
     return;
   }
 
-  const windowSession = session.fromPartition(WINDOW_PARTITION);
-  registerShellProtocol(windowSession.protocol);
+  // PicoClaw's SameSite=Lax login cookie needs the embedding top-level page
+  // to share its http://127.0.0.1 site. Ports remain isolated origins.
+  shellService = await startShellServer(path.join(__dirname, "renderer"));
+  shellOrigin = shellService.origin;
   const config = createRuntimeConfig({
     env: process.env,
     isPackaged: app.isPackaged,
@@ -206,7 +176,14 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
-});
+}
+
+app.whenReady()
+  .then(initializeApplication)
+  .catch((error) => {
+    console.error("Failed to initialize Wendi Chat:", error);
+    app.quit();
+  });
 
 app.on("second-instance", () => {
   if (!mainWindow) {
@@ -226,12 +203,19 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", (event) => {
-  if (quitAfterCleanup || !runtime) {
+  if (quitAfterCleanup) {
     return;
   }
 
   event.preventDefault();
-  void runtime.stop().finally(() => {
+  const cleanup = [];
+  if (runtime) {
+    cleanup.push(runtime.stop());
+  }
+  if (shellService) {
+    cleanup.push(shellService.close());
+  }
+  void Promise.allSettled(cleanup).finally(() => {
     quitAfterCleanup = true;
     app.quit();
   });
