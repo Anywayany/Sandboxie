@@ -15,7 +15,7 @@
     "test": "node --test",
     "verify:payload": "node scripts/verify-picoclaw-payload.js",
     "smoke:sandbox": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-WendiChatSandbox.ps1",
-    "dist:win": "npm run verify:payload && electron-builder --win nsis --x64"
+    "dist:win": "npm run verify:payload && electron-builder --win nsis --x64 --publish never"
   },
   "devDependencies": {
     "electron": "43.0.0",

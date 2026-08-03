@@ -7,6 +7,7 @@ on:
       - light-sandboxie
     paths:
       - ".github/workflows/build-picoclaw-payload.yml"
+      - "WendiChat/package.json"
 
 permissions:
   contents: read
