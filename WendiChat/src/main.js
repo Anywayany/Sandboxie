@@ -7,7 +7,8 @@ const {
   BrowserWindow,
   ipcMain,
   net,
-  protocol
+  protocol,
+  session
 } = require("electron");
 const { PicoClawRuntime } = require("./main/picoclaw-runtime");
 const { createRuntimeConfig } = require("./main/runtime-config");
@@ -17,6 +18,7 @@ const {
 } = require("./main/url-policy");
 
 const SHELL_ORIGIN = "wendi-app://shell";
+const WINDOW_PARTITION = "persist:wendi-chat";
 const ALLOWED_SECTIONS = new Set(["messages", "contacts", "agent"]);
 
 let mainWindow;
@@ -41,7 +43,7 @@ if (!hasSingleInstanceLock) {
   app.quit();
 }
 
-function registerShellProtocol() {
+function registerShellProtocol(sessionProtocol) {
   const rendererRoot = path.join(__dirname, "renderer");
   const files = new Map([
     ["/", "index.html"],
@@ -50,7 +52,7 @@ function registerShellProtocol() {
     ["/styles.css", "styles.css"]
   ]);
 
-  protocol.handle("wendi-app", (request) => {
+  sessionProtocol.handle("wendi-app", (request) => {
     const url = new URL(request.url);
     const relative = url.host === "shell" ? files.get(url.pathname) : undefined;
     if (!relative) {
@@ -149,7 +151,7 @@ function createWindow() {
       webSecurity: true,
       allowRunningInsecureContent: false,
       navigateOnDragDrop: false,
-      partition: "persist:wendi-chat"
+      partition: WINDOW_PARTITION
     }
   });
 
@@ -183,7 +185,8 @@ app.whenReady().then(() => {
     return;
   }
 
-  registerShellProtocol();
+  const windowSession = session.fromPartition(WINDOW_PARTITION);
+  registerShellProtocol(windowSession.protocol);
   const config = createRuntimeConfig({
     env: process.env,
     isPackaged: app.isPackaged,

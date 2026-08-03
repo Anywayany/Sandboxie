@@ -8,6 +8,7 @@ on:
     paths:
       - ".github/workflows/build-picoclaw-payload.yml"
       - "WendiChat/package.json"
+      - "WendiChat/src/**"
 
 permissions:
   contents: read
