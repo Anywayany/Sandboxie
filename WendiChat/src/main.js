@@ -14,7 +14,8 @@ const { PicoClawRuntime } = require("./main/picoclaw-runtime");
 const { createRuntimeConfig } = require("./main/runtime-config");
 const {
   isAllowedAgentFrameUrl,
-  isAllowedAgentRequestUrl
+  isAllowedAgentRequestUrl,
+  isTrustedShellUrl
 } = require("./main/url-policy");
 
 const SHELL_ORIGIN = "wendi-app://shell";
@@ -64,8 +65,8 @@ function registerShellProtocol(sessionProtocol) {
 
 function isTrustedShellSender(event) {
   try {
-    const url = new URL(event.senderFrame.url);
-    return url.origin === SHELL_ORIGIN && event.sender === mainWindow.webContents;
+    return isTrustedShellUrl(event.senderFrame.url) &&
+      event.sender === mainWindow.webContents;
   } catch {
     return false;
   }

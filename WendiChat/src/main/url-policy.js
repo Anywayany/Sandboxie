@@ -8,6 +8,15 @@ function parseUrl(rawUrl) {
   }
 }
 
+function isTrustedShellUrl(rawUrl) {
+  const url = parseUrl(rawUrl);
+  return Boolean(url) &&
+    url.protocol === "wendi-app:" &&
+    url.hostname === "shell" &&
+    url.port === "" &&
+    (url.pathname === "/" || url.pathname === "/index.html");
+}
+
 function isAllowedAgentRequestUrl(rawUrl, expectedOrigin) {
   const url = parseUrl(rawUrl);
   if (!url) {
@@ -46,5 +55,6 @@ function isAllowedAgentFrameUrl(rawUrl, expectedOrigin) {
 
 module.exports = {
   isAllowedAgentFrameUrl,
-  isAllowedAgentRequestUrl
+  isAllowedAgentRequestUrl,
+  isTrustedShellUrl
 };

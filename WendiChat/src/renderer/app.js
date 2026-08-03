@@ -10,6 +10,13 @@ const retryButton = document.getElementById("retry-button");
 const agentFrame = document.getElementById("agent-frame");
 const agentStateCard = document.getElementById("agent-state-card");
 
+function renderRequestError(error) {
+  renderAgentState({
+    phase: "error",
+    message: error instanceof Error ? error.message : String(error)
+  });
+}
+
 function setSection(sectionName) {
   for (const item of navItems) {
     item.classList.toggle("active", item.dataset.section === sectionName);
@@ -63,21 +70,29 @@ function renderAgentState(state) {
 
 for (const item of navItems) {
   item.addEventListener("click", async () => {
-    const section = item.dataset.section;
-    setSection(section);
-    if (section === "agent") {
-      renderAgentState({ phase: "starting" });
+    try {
+      const section = item.dataset.section;
+      setSection(section);
+      if (section === "agent") {
+        renderAgentState({ phase: "starting" });
+      }
+      const state = await window.wendiDesktop.selectSection(section);
+      renderAgentState(state);
+    } catch (error) {
+      renderRequestError(error);
     }
-    const state = await window.wendiDesktop.selectSection(section);
-    renderAgentState(state);
   });
 }
 
 retryButton.addEventListener("click", async () => {
-  renderAgentState({ phase: "starting" });
-  const state = await window.wendiDesktop.retryAgent();
-  renderAgentState(state);
+  try {
+    renderAgentState({ phase: "starting" });
+    const state = await window.wendiDesktop.retryAgent();
+    renderAgentState(state);
+  } catch (error) {
+    renderRequestError(error);
+  }
 });
 
 window.wendiDesktop.onAgentState(renderAgentState);
-window.wendiDesktop.getAgentState().then(renderAgentState);
+window.wendiDesktop.getAgentState().then(renderAgentState, renderRequestError);

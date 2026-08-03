@@ -4,7 +4,8 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   isAllowedAgentFrameUrl,
-  isAllowedAgentRequestUrl
+  isAllowedAgentRequestUrl,
+  isTrustedShellUrl
 } = require("../src/main/url-policy");
 
 const expectedOrigin = "http://127.0.0.1:28431";
@@ -37,4 +38,12 @@ test("agent requests permit local browser resources but frames do not", () => {
     isAllowedAgentFrameUrl("http://127.0.0.1:28431/launcher-login", expectedOrigin),
     true
   );
+});
+
+test("trusted shell URLs are validated without relying on custom-scheme origin", () => {
+  assert.equal(isTrustedShellUrl("wendi-app://shell/index.html"), true);
+  assert.equal(isTrustedShellUrl("wendi-app://shell/"), true);
+  assert.equal(isTrustedShellUrl("wendi-app://shell/app.js"), false);
+  assert.equal(isTrustedShellUrl("wendi-app://attacker/index.html"), false);
+  assert.equal(isTrustedShellUrl("https://shell/index.html"), false);
 });
