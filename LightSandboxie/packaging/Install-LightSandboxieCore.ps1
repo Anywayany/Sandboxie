@@ -37,9 +37,10 @@ function Invoke-KmdUtil {
     param([string[]]$Arguments)
 
     $tool = Join-Path $InstallPath "KmdUtil.exe"
-    & $tool @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "KmdUtil failed with exit code $LASTEXITCODE: $($Arguments -join ' ')"
+    $argumentLine = ($Arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join " "
+    $process = Start-Process -FilePath $tool -ArgumentList $argumentLine -Wait -PassThru -NoNewWindow
+    if ($process.ExitCode -ne 0) {
+        throw "KmdUtil failed with exit code $($process.ExitCode): $($Arguments -join ' ')"
     }
 }
 
@@ -124,6 +125,7 @@ function Assert-PayloadManifest {
         "SandboxieRpcSs.exe",
         "SandboxieDcomLaunch.exe",
         "SandboxieCrypto.exe",
+        "Templates.ini",
         "32\SbieSvc.exe",
         "32\SbieDll.dll"
     )
@@ -261,8 +263,9 @@ $healthArguments = @(
 if ($AllowUnsigned) {
     $healthArguments += "-AllowUnsigned"
 }
-& $windowsPowerShell @healthArguments
-$healthExitCode = $LASTEXITCODE
+$healthArgumentLine = ($healthArguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join " "
+$healthProcess = Start-Process -FilePath $windowsPowerShell -ArgumentList $healthArgumentLine -Wait -PassThru -NoNewWindow
+$healthExitCode = $healthProcess.ExitCode
 if ($healthExitCode -ne 0) {
     throw "Post-install health check failed."
 }

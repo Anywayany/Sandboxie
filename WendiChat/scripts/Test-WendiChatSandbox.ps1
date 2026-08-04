@@ -1,16 +1,59 @@
 [CmdletBinding()]
 param(
     [string]$StartExe = "$env:ProgramFiles\Wendi\LightSandboxie\Start.exe",
-    [string]$LauncherExe = (
-        Join-Path (Split-Path -Parent $PSScriptRoot) `
-            "resources\picoclaw\picoclaw-launcher.exe"
-    ),
+    [string]$LauncherExe = "",
     [string]$SandboxName = "PicoClawBox",
     [int]$TimeoutSeconds = 45
 )
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($LauncherExe)) {
+    $LauncherExe = Join-Path $env:LOCALAPPDATA `
+        "Programs\wendi-chat-desktop\resources\picoclaw\picoclaw-launcher.exe"
+}
+
+function Invoke-SandboxieStart {
+    param(
+        [string[]]$Arguments,
+        [switch]$CaptureOutput
+    )
+
+    # Start.exe is a GUI-subsystem executable. Direct invocation from Windows
+    # PowerShell neither waits reliably nor provides it with capturable standard
+    # handles, so use ProcessStartInfo with explicit redirection instead.
+    $argumentLine = ($Arguments | ForEach-Object {
+        if ($_ -match '[\s"]') {
+            '"' + $_.Replace('"', '\"') + '"'
+        } else {
+            $_
+        }
+    }) -join " "
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $StartExe
+    $startInfo.Arguments = $argumentLine
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = [bool]$CaptureOutput
+    $startInfo.RedirectStandardError = [bool]$CaptureOutput
+    $process = [System.Diagnostics.Process]::Start($startInfo)
+    $stdout = ""
+    $stderr = ""
+    if ($CaptureOutput) {
+        $stdout = $process.StandardOutput.ReadToEnd()
+        $stderr = $process.StandardError.ReadToEnd()
+    }
+    $process.WaitForExit()
+    $output = @(
+        $stdout -split "`r?`n" | Where-Object { $_.Length -gt 0 }
+    )
+    return [pscustomobject]@{
+        ExitCode = $process.ExitCode
+        Output = $output
+        ErrorOutput = $stderr.Trim()
+    }
+}
 
 function Assert-WindowsX64 {
     if (-not [Environment]::Is64BitOperatingSystem) {
@@ -22,13 +65,15 @@ function Assert-WindowsX64 {
 }
 
 function Get-SandboxProcessIds {
-    $output = @(& $StartExe "/box:$SandboxName" "/silent" "/listpids")
-    if ($LASTEXITCODE -ne 0) {
-        throw "Start.exe /listpids failed with exit code $LASTEXITCODE."
+    $result = Invoke-SandboxieStart `
+        -Arguments @("/box:$SandboxName", "/silent", "/listpids") `
+        -CaptureOutput
+    if ($result.ExitCode -ne 0) {
+        throw "Start.exe /listpids failed with exit code $($result.ExitCode)."
     }
 
     $numbers = New-Object System.Collections.Generic.List[int]
-    foreach ($line in $output) {
+    foreach ($line in $result.Output) {
         $value = 0
         if ([int]::TryParse(([string]$line).Trim(), [ref]$value)) {
             $numbers.Add($value)
@@ -121,18 +166,19 @@ try {
         $picoClawHome,
         "Process"
     )
-    & $StartExe `
-        "/box:$SandboxName" `
-        "/silent" `
-        "/hide_window" `
-        $LauncherExe `
-        "-host" "127.0.0.1" `
-        "-port" ([string]$port) `
-        "-no-browser" `
-        "-console" `
+    $launchResult = Invoke-SandboxieStart @(
+        "/box:$SandboxName",
+        "/silent",
+        "/hide_window",
+        $LauncherExe,
+        "-host", "127.0.0.1",
+        "-port", ([string]$port),
+        "-no-browser",
+        "-console",
         $configPath
-    if ($LASTEXITCODE -ne 0) {
-        throw "Sandboxed PicoClaw launch failed with exit code $LASTEXITCODE."
+    )
+    if ($launchResult.ExitCode -ne 0) {
+        throw "Sandboxed PicoClaw launch failed with exit code $($launchResult.ExitCode)."
     }
     $started = $true
 
@@ -170,9 +216,13 @@ try {
     Write-Host "Sandboxed processes: $($processNames -join ', ')"
 } finally {
     if ($started) {
-        & $StartExe "/box:$SandboxName" "/silent" "/terminate"
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Could not terminate $SandboxName (exit code $LASTEXITCODE)."
+        $terminateResult = Invoke-SandboxieStart @(
+            "/box:$SandboxName",
+            "/silent",
+            "/terminate"
+        )
+        if ($terminateResult.ExitCode -ne 0) {
+            Write-Warning "Could not terminate $SandboxName (exit code $($terminateResult.ExitCode))."
         }
     }
     [Environment]::SetEnvironmentVariable(

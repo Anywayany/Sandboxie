@@ -1,7 +1,7 @@
 # Wendi Chat desktop prototype
 
 This directory is a replaceable Electron shell for a Windows enterprise chat
-client. Selecting the robot in the left sidebar starts the unmodified PicoClaw
+client. Selecting the robot in the left sidebar starts the PicoClaw
 `wendi-mobile-h5` launcher through the enterprise-installed Light Sandboxie
 Core and embeds its desktop WebUI at `http://127.0.0.1:<port>/`.
 
@@ -33,7 +33,10 @@ without changing the PicoClaw runtime contract.
 5. PicoClaw's existing setup/password page handles authentication.
 6. Closing Wendi Chat calls `Start.exe /box:PicoClawBox /terminate`.
 
-PicoClaw itself is not patched.
+The packaged Windows core applies `resources/picoclaw/patches/windows-native-dns.patch`
+so Windows retains its native DNS resolver. Without this platform guard,
+PicoClaw mistakes Windows for Android because both lack `/etc/resolv.conf` and
+overrides the system resolver with sandbox-incompatible DNS endpoints.
 
 ## Prepare PicoClaw
 
@@ -47,8 +50,8 @@ The verified local development payload is built from PicoClaw commit
 `bc2d8ac960148146c9c289f84651ee22f6392537`. The branch currently omits the
 `workspace` directory required by its `go:embed` directive, so the build uses
 only the onboarding templates from PicoClaw `main` commit
-`52320f48755852e53b8b6b10b1414a32c3f0a8a8`. PicoClaw application source is
-not modified.
+`52320f48755852e53b8b6b10b1414a32c3f0a8a8`. Apart from the recorded Windows
+DNS platform guard, PicoClaw application source is not modified.
 
 The executables are intentionally ignored by this repository. Run the manual
 GitHub Actions workflow `Build PicoClaw Windows payload`, then extract its

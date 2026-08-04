@@ -81,7 +81,8 @@ $x64Files = @(
     "KmdUtil.exe",
     "SandboxieRpcSs.exe",
     "SandboxieDcomLaunch.exe",
-    "SandboxieCrypto.exe"
+    "SandboxieCrypto.exe",
+    "Templates.ini"
 )
 
 $win32Files = @(

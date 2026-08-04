@@ -43,6 +43,7 @@ Wendi-LightSandboxie-Core-x64/
     |-- SandboxieRpcSs.exe
     |-- SandboxieDcomLaunch.exe
     |-- SandboxieCrypto.exe
+    |-- Templates.ini
     `-- 32/
         |-- SbieSvc.exe
         `-- SbieDll.dll

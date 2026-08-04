@@ -24,9 +24,10 @@ function Invoke-KmdUtilIfPresent {
     if (-not (Test-Path -LiteralPath $tool -PathType Leaf)) {
         throw "Cannot safely remove installed services because KmdUtil is missing: $tool"
     }
-    & $tool @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "KmdUtil failed with exit code $LASTEXITCODE: $($Arguments -join ' ')"
+    $argumentLine = ($Arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join " "
+    $process = Start-Process -FilePath $tool -ArgumentList $argumentLine -Wait -PassThru -NoNewWindow
+    if ($process.ExitCode -ne 0) {
+        throw "KmdUtil failed with exit code $($process.ExitCode): $($Arguments -join ' ')"
     }
 }
 

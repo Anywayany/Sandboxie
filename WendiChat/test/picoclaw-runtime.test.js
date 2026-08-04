@@ -18,6 +18,7 @@ const config = Object.freeze({
   startExe: "C:\\Program Files\\Wendi\\LightSandboxie\\Start.exe",
   launcherExe: "C:\\Users\\demo\\AppData\\Local\\Programs\\Wendi Chat\\resources\\picoclaw\\picoclaw-launcher.exe",
   picoClawHome: "C:\\Users\\demo\\AppData\\Local\\WendiChat\\PicoClaw",
+  picoClawDnsServer: "198.18.0.2:53",
   picoClawConfig: "C:\\Users\\demo\\AppData\\Local\\WendiChat\\PicoClaw\\config.json",
   startTimeoutMs: 12000
 });
@@ -122,6 +123,10 @@ test("PicoClawRuntime starts Start.exe and publishes the desktop URL", async () 
   assert.equal(spawnCalls[0].command, config.startExe);
   assert.equal(spawnCalls[0].options.windowsHide, true);
   assert.equal(spawnCalls[0].options.env.PICOCLAW_HOME, config.picoClawHome);
+  assert.equal(
+    spawnCalls[0].options.env.PICOCLAW_DNS_SERVER,
+    config.picoClawDnsServer
+  );
 });
 
 test("PicoClawRuntime fails before spawning when the enterprise core is absent", async () => {

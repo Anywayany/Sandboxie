@@ -20,6 +20,7 @@ function createManifest(options) {
     sourceCommit,
     workspaceTemplateCommit,
     goVersion,
+    localPatches = [],
     createdUtc = new Date().toISOString(),
     readFileSync = fs.readFileSync
   } = options;
@@ -43,7 +44,7 @@ function createManifest(options) {
     };
   });
 
-  return {
+  const manifest = {
     schema: 1,
     source_repository: "https://github.com/Anywayany/picoclaw",
     source_branch: "wendi-mobile-h5",
@@ -55,6 +56,11 @@ function createManifest(options) {
     created_utc: createdUtc,
     files
   };
+
+  if (localPatches.length > 0) {
+    manifest.local_patches = [...localPatches];
+  }
+  return manifest;
 }
 
 if (require.main === module) {
@@ -64,7 +70,11 @@ if (require.main === module) {
     payloadRoot,
     sourceCommit,
     workspaceTemplateCommit,
-    goVersion: process.env.PICOCLAW_GO_VERSION || "unknown"
+    goVersion: process.env.PICOCLAW_GO_VERSION || "unknown",
+    localPatches: (process.env.PICOCLAW_LOCAL_PATCHES || "")
+      .split(";")
+      .map((value) => value.trim())
+      .filter(Boolean)
   });
   const outputPath = path.join(payloadRoot, "payload-manifest.json");
   fs.writeFileSync(outputPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");

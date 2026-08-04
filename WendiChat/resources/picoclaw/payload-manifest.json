@@ -7,17 +7,20 @@
   "workspace_template_commit": "52320f48755852e53b8b6b10b1414a32c3f0a8a8",
   "target": "windows/amd64",
   "go_version": "go1.26.1",
-  "created_utc": "2026-07-29T15:19:03.134Z",
+  "created_utc": "2026-08-04T17:12:02.895Z",
   "files": [
     {
       "name": "picoclaw-launcher.exe",
-      "size": 24794112,
-      "sha256": "b460c04e163b7e23eb5fd03cdc463fe7d6ff85e72dcf6a7adf59cbcac8f05ac7"
+      "size": 24850944,
+      "sha256": "9f00a65d2268e008258ee69a35a1d9e56616e591d5596e8c535648030da6a7c3"
     },
     {
       "name": "picoclaw.exe",
-      "size": 38466048,
-      "sha256": "256a53a5d06f72540e29793a5a675abc1886fb3c390e5d14e67a6eff33c28c19"
+      "size": 38564352,
+      "sha256": "4148d2004343bed7cd03865b99a24c7c7cad7fd3796f32c9ed8914a409787314"
     }
+  ],
+  "local_patches": [
+    "patches/windows-native-dns.patch"
   ]
 }

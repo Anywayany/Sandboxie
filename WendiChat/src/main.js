@@ -1,5 +1,6 @@
 "use strict";
 
+const dns = require("node:dns");
 const path = require("node:path");
 const {
   app,
@@ -156,7 +157,8 @@ async function initializeApplication() {
     isPackaged: app.isPackaged,
     resourcesPath: process.resourcesPath,
     appPath: app.getAppPath(),
-    localAppData: process.env.LOCALAPPDATA || app.getPath("appData")
+    localAppData: process.env.LOCALAPPDATA || app.getPath("appData"),
+    dnsServers: dns.getServers()
   });
   runtime = new PicoClawRuntime(config);
   runtime.on("state", (state) => {

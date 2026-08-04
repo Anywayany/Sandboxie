@@ -18,6 +18,7 @@ $requiredFiles = @(
     "SandboxieRpcSs.exe",
     "SandboxieDcomLaunch.exe",
     "SandboxieCrypto.exe",
+    "Templates.ini",
     "32\SbieSvc.exe",
     "32\SbieDll.dll"
 )

@@ -170,7 +170,10 @@ class PicoClawRuntime extends EventEmitter {
         stdio: "ignore",
         env: {
           ...process.env,
-          PICOCLAW_HOME: this.config.picoClawHome
+          PICOCLAW_HOME: this.config.picoClawHome,
+          ...(this.config.picoClawDnsServer ? {
+            PICOCLAW_DNS_SERVER: this.config.picoClawDnsServer
+          } : {})
         }
       });
 

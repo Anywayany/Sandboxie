@@ -9,6 +9,13 @@ branch before building. Exact commits and SHA-256 hashes are recorded in:
 
   payload-manifest.json
 
+The locally tested Windows payload applies:
+
+  patches/windows-native-dns.patch
+
+This keeps the native Windows resolver instead of treating the missing
+/etc/resolv.conf as an Android environment.
+
 Required files before packaging:
 
   picoclaw-launcher.exe
