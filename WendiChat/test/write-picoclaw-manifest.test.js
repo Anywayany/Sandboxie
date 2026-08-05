@@ -32,14 +32,20 @@ test("createManifest records reproducible payload provenance and hashes", () => 
     sourceCommit: "b".repeat(40),
     workspaceTemplateCommit: "5".repeat(40),
     goVersion: "go1.26.1",
-    localPatches: ["windows-native-dns.patch"],
+    localPatches: [
+      "windows-native-dns.patch",
+      "websocket-idle-recovery.patch"
+    ],
     createdUtc: "2026-07-29T00:00:00.000Z",
     readFileSync: (filePath) => files.get(path.basename(filePath))
   });
 
   assert.equal(manifest.target, "windows/amd64");
   assert.equal(manifest.source_branch, "wendi-mobile-h5");
-  assert.deepEqual(manifest.local_patches, ["windows-native-dns.patch"]);
+  assert.deepEqual(manifest.local_patches, [
+    "windows-native-dns.patch",
+    "websocket-idle-recovery.patch"
+  ]);
   assert.equal(manifest.files[0].sha256, sha256(launcher));
   assert.equal(manifest.files[1].sha256, sha256(core));
 });

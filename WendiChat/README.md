@@ -33,10 +33,15 @@ without changing the PicoClaw runtime contract.
 5. PicoClaw's existing setup/password page handles authentication.
 6. Closing Wendi Chat calls `Start.exe /box:PicoClawBox /terminate`.
 
-The packaged Windows core applies `resources/picoclaw/patches/windows-native-dns.patch`
-so Windows retains its native DNS resolver. Without this platform guard,
-PicoClaw mistakes Windows for Android because both lack `/etc/resolv.conf` and
-overrides the system resolver with sandbox-incompatible DNS endpoints.
+The packaged Windows payload applies two recorded local patches:
+
+- `resources/picoclaw/patches/windows-native-dns.patch` keeps the native
+  Windows DNS resolver. Without this guard, PicoClaw mistakes Windows for
+  Android because both lack `/etc/resolv.conf`.
+- `resources/picoclaw/patches/websocket-idle-recovery.patch` adds a 25-second
+  application keepalive and reconnects when the embedded page becomes visible,
+  regains focus, returns from the page cache, or comes back online. Wendi also
+  disables Electron background timer throttling for this local agent window.
 
 ## Prepare PicoClaw
 
@@ -50,8 +55,9 @@ The verified local development payload is built from PicoClaw commit
 `bc2d8ac960148146c9c289f84651ee22f6392537`. The branch currently omits the
 `workspace` directory required by its `go:embed` directive, so the build uses
 only the onboarding templates from PicoClaw `main` commit
-`52320f48755852e53b8b6b10b1414a32c3f0a8a8`. Apart from the recorded Windows
-DNS platform guard, PicoClaw application source is not modified.
+`52320f48755852e53b8b6b10b1414a32c3f0a8a8`. All local source changes are kept
+as named patches, applied with `git apply --check`, and recorded in the payload
+manifest.
 
 The executables are intentionally ignored by this repository. Run the manual
 GitHub Actions workflow `Build PicoClaw Windows payload`, then extract its

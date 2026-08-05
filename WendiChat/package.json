@@ -1,6 +1,6 @@
 {
   "name": "wendi-chat-desktop",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Windows enterprise chat shell with a Sandboxie-isolated PicoClaw agent.",
   "author": "Anywayany",
   "repository": {

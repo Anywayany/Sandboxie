@@ -1,0 +1,129 @@
+diff --git a/web/frontend/src/features/chat/controller.ts b/web/frontend/src/features/chat/controller.ts
+index cd51510..35e027e 100644
+--- a/web/frontend/src/features/chat/controller.ts
++++ b/web/frontend/src/features/chat/controller.ts
+@@ -36,0 +37,4 @@ let shouldMaintainConnection = false
++let keepaliveTimer: number | null = null
++let recoveryListenersInstalled = false
++
++const CLIENT_KEEPALIVE_INTERVAL_MS = 25_000
+@@ -44,0 +49,55 @@ function clearReconnectTimer() {
++function clearKeepaliveTimer() {
++  if (keepaliveTimer !== null) {
++    window.clearInterval(keepaliveTimer)
++    keepaliveTimer = null
++  }
++}
++
++function sendKeepalive(socket: WebSocket) {
++  if (socket.readyState !== WebSocket.OPEN) {
++    return
++  }
++
++  socket.send(
++    JSON.stringify({
++      type: "ping",
++      id: `keepalive-${Date.now()}`,
++    }),
++  )
++}
++
++function startKeepalive(
++  socket: WebSocket,
++  generation: number,
++  sessionId: string,
++) {
++  clearKeepaliveTimer()
++  keepaliveTimer = window.setInterval(() => {
++    if (
++      !isCurrentSocket({
++        socket,
++        currentSocket: wsRef,
++        generation,
++        currentGeneration: connectionGeneration,
++        sessionId,
++        currentSessionId: activeSessionIdRef,
++      }) ||
++      socket.readyState !== WebSocket.OPEN
++    ) {
++      clearKeepaliveTimer()
++      return
++    }
++
++    try {
++      sendKeepalive(socket)
++    } catch {
++      clearKeepaliveTimer()
++      invalidateSocket(socket)
++      wsRef = null
++      isConnecting = false
++      updateChatStore({ connectionState: "error" })
++      scheduleReconnect(generation, sessionId)
++    }
++  }, CLIENT_KEEPALIVE_INTERVAL_MS)
++}
++
+@@ -92,0 +152 @@ function disconnectChatInternal({
++  clearKeepaliveTimer()
+@@ -167,0 +228 @@ export async function connectChat() {
++      startKeepalive(socket, generation, sessionId)
+@@ -206,0 +268 @@ export async function connectChat() {
++      clearKeepaliveTimer()
+@@ -227,0 +290 @@ export async function connectChat() {
++      clearKeepaliveTimer()
+@@ -244,0 +308,51 @@ export async function connectChat() {
++function recoverChatConnection() {
++  if (
++    !shouldMaintainConnection ||
++    store.get(gatewayAtom).status !== "running"
++  ) {
++    return
++  }
++
++  if (wsRef?.readyState === WebSocket.OPEN) {
++    try {
++      sendKeepalive(wsRef)
++    } catch {
++      invalidateSocket(wsRef)
++      wsRef = null
++    }
++  }
++
++  if (!wsRef || wsRef.readyState === WebSocket.CLOSED) {
++    clearReconnectTimer()
++    void connectChat()
++  }
++}
++
++function handleVisibilityRecovery() {
++  if (document.visibilityState === "visible") {
++    recoverChatConnection()
++  }
++}
++
++function installRecoveryListeners() {
++  if (recoveryListenersInstalled) {
++    return
++  }
++  recoveryListenersInstalled = true
++  window.addEventListener("focus", recoverChatConnection)
++  window.addEventListener("online", recoverChatConnection)
++  window.addEventListener("pageshow", recoverChatConnection)
++  document.addEventListener("visibilitychange", handleVisibilityRecovery)
++}
++
++function removeRecoveryListeners() {
++  if (!recoveryListenersInstalled) {
++    return
++  }
++  recoveryListenersInstalled = false
++  window.removeEventListener("focus", recoverChatConnection)
++  window.removeEventListener("online", recoverChatConnection)
++  window.removeEventListener("pageshow", recoverChatConnection)
++  document.removeEventListener("visibilitychange", handleVisibilityRecovery)
++}
++
+@@ -452,0 +567 @@ export function initializeChatStore() {
++  installRecoveryListeners()
+@@ -496,0 +612 @@ export function teardownChatStore() {
++  removeRecoveryListeners()

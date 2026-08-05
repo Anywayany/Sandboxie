@@ -9,6 +9,7 @@ const {
 } = require("electron");
 const { PicoClawRuntime } = require("./main/picoclaw-runtime");
 const { createRuntimeConfig } = require("./main/runtime-config");
+const { createWindowWebPreferences } = require("./main/window-options");
 const {
   isAllowedAgentRequestUrl,
   isAllowedShellRequestUrl,
@@ -20,7 +21,6 @@ const {
 } = require("./main/navigation-policy");
 const { startShellServer } = require("./main/shell-server");
 
-const WINDOW_PARTITION = "persist:wendi-chat";
 const ALLOWED_SECTIONS = new Set(["messages", "contacts", "agent"]);
 
 let mainWindow;
@@ -116,16 +116,9 @@ function createWindow() {
     title: "Wendi Chat",
     backgroundColor: "#f5f7fa",
     autoHideMenuBar: true,
-    webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-      navigateOnDragDrop: false,
-      partition: WINDOW_PARTITION
-    }
+    webPreferences: createWindowWebPreferences(
+      path.join(__dirname, "preload.js")
+    )
   });
 
   configureWindowSession(mainWindow);

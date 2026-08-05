@@ -62,11 +62,16 @@ jobs:
       - name: Restore missing onboarding templates
         run: cp -a picoclaw-main/workspace picoclaw/workspace
 
-      - name: Apply Wendi Windows DNS patch
+      - name: Apply Wendi PicoClaw patches
         run: |
-          patch_path="$GITHUB_WORKSPACE/sandboxie/WendiChat/resources/picoclaw/patches/windows-native-dns.patch"
-          git -C picoclaw apply --check "$patch_path"
-          git -C picoclaw apply "$patch_path"
+          for patch_name in \
+            windows-native-dns.patch \
+            websocket-idle-recovery.patch
+          do
+            patch_path="$GITHUB_WORKSPACE/sandboxie/WendiChat/resources/picoclaw/patches/$patch_name"
+            git -C picoclaw apply --unidiff-zero --check "$patch_path"
+            git -C picoclaw apply --unidiff-zero "$patch_path"
+          done
           git -C picoclaw diff --check
 
       - name: Build Windows x64 launcher and core
@@ -78,7 +83,7 @@ jobs:
       - name: Assemble and verify payload
         env:
           PICOCLAW_GO_VERSION: go1.26.1
-          PICOCLAW_LOCAL_PATCHES: patches/windows-native-dns.patch
+          PICOCLAW_LOCAL_PATCHES: patches/windows-native-dns.patch;patches/websocket-idle-recovery.patch
         run: |
           cp picoclaw/build/picoclaw-launcher-windows-amd64.exe \
             sandboxie/WendiChat/resources/picoclaw/picoclaw-launcher.exe
@@ -101,6 +106,7 @@ jobs:
             sandboxie/WendiChat/resources/picoclaw/payload-manifest.json
             sandboxie/WendiChat/resources/picoclaw/LICENSE.picoclaw.txt
             sandboxie/WendiChat/resources/picoclaw/patches/windows-native-dns.patch
+            sandboxie/WendiChat/resources/picoclaw/patches/websocket-idle-recovery.patch
 
   build-installer:
     needs: build-payload
